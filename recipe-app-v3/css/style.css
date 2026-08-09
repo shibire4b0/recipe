@@ -74,6 +74,13 @@ button, input, textarea, select { font-family: inherit; }
   margin: 0 0 6px 2px;
 }
 
+.menu-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.menu-header-row .eyebrow { margin-bottom: 6px; }
+
 .screen-title {
   font-family: var(--font-display);
   font-weight: 700;
@@ -310,6 +317,8 @@ button, input, textarea, select { font-family: inherit; }
   margin: 0;
   word-break: break-word;
 }
+.detail-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.share-file-row { margin: -4px 0 16px; }
 
 .ingredient-row {
   display: flex;

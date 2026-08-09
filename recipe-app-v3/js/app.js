@@ -104,12 +104,121 @@
     }[s]));
   }
 
+  /* ============ recipe sharing (URL link / file, no backend) ============
+     A link carries the recipe as text only (name/ingredients/steps/memo)
+     kept small and base64url-encoded in the hash so it survives being
+     pasted into Messages/Mail on iOS. Photos are excluded from links
+     (a resized JPEG would make the URL unreliable across share targets)
+     but are included when sharing as a .json file via the native share
+     sheet, which handles larger payloads fine. */
+  function b64urlEncode(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    bytes.forEach(b => { binary += String.fromCharCode(b); });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64urlDecode(b64url) {
+    let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function buildShareRecipePayload(recipe) {
+    return {
+      v: 1,
+      name: recipe.name || '',
+      memo: recipe.memo || '',
+      ingredients: recipe.ingredients.map(ing => {
+        const f = getFood(ing.foodId);
+        return f ? { name: f.name, unit: f.unit, amount: ing.amount || '' } : null;
+      }).filter(Boolean),
+      steps: (recipe.steps || []).filter(s => s && s.trim()),
+    };
+  }
+
+  function isValidSharePayload(p) {
+    return !!p && typeof p === 'object' && Array.isArray(p.ingredients) && Array.isArray(p.steps);
+  }
+
+  function applyImportedRecipe(payload) {
+    const foods = loadFoods();
+    const ingredients = (payload.ingredients || []).map(ing => {
+      let food = foods.find(f => f.name === ing.name);
+      if (!food) {
+        food = { id: uid(), name: ing.name, unit: ing.unit || 'その他' };
+        foods.push(food);
+      }
+      return { foodId: food.id, amount: ing.amount || '' };
+    });
+    saveFoods(foods);
+
+    const recipes = loadRecipes();
+    const record = {
+      id: uid(),
+      name: payload.name || '無題のレシピ',
+      image: payload.image || null,
+      memo: payload.memo || '',
+      ingredients,
+      steps: (payload.steps || []).filter(s => s && s.trim()),
+      createdAt: Date.now(),
+    };
+    recipes.push(record);
+    saveRecipes(recipes);
+    return record;
+  }
+
+  async function shareRecipeLink(recipe) {
+    const encoded = b64urlEncode(JSON.stringify(buildShareRecipePayload(recipe)));
+    const url = location.origin + location.pathname + '#/import/' + encoded;
+    const title = recipe.name || 'レシピ';
+    if (navigator.share) {
+      try { await navigator.share({ title, text: `「${title}」のレシピをシェアします`, url }); }
+      catch (e) { /* user cancelled the share sheet */ }
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        window.alert('共有リンクをコピーしました。');
+        return;
+      } catch (e) { /* fall through to prompt */ }
+    }
+    window.prompt('このリンクをコピーして共有してください', url);
+  }
+
+  async function shareRecipeFile(recipe) {
+    const payload = buildShareRecipePayload(recipe);
+    payload.image = recipe.image || null;
+    const filename = (recipe.name || 'recipe').replace(/[\\/:*?"<>|]/g, '').trim() + '.json';
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const file = new File([blob], filename || 'recipe.json', { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: recipe.name || 'レシピ' }); return; }
+      catch (e) { /* user cancelled the share sheet */ }
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'recipe.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
   /* ============ draft state (recipe being created/edited) ============ */
   let draft = null;
   function blankDraft() {
     return { editingId: null, name: '', image: null, memo: '', ingredients: [], steps: [''] };
   }
   let pendingFoodIds = [];
+  // holds a decoded payload handed off from the file-import picker to
+  // the #/import-preview route (a file's contents can't live in the URL)
+  let filePendingImportPayload = null;
 
   /* ============ router ============ */
   const app = document.getElementById('app');
@@ -127,6 +236,8 @@
     if (parts.length === 0 || parts[0] === 'menu') return renderMenu();
     if (parts[0] === 'recipe' && parts[1]) return renderRecipeDetail(parts[1]);
     if (parts[0] === 'foods' && parts[1] === 'new') return renderFoodNew();
+    if (parts[0] === 'import' && parts[1]) return renderImportPreview({ source: 'url', encoded: parts[1] });
+    if (parts[0] === 'import-preview') return renderImportPreview({ source: 'file' });
     if (parts[0] === 'add-recipe') {
       if (!draft) draft = blankDraft();
       if (parts[1] === 'foods') return renderAddFoodSelect();
@@ -145,7 +256,11 @@
     app.innerHTML = `
       <div class="screen">
         <div class="screen-header">
-          <div class="eyebrow">Recipe Note</div>
+          <div class="menu-header-row">
+            <div class="eyebrow">Recipe Note</div>
+            <button class="fab-round" id="importFileBtn" title="共有されたレシピを読み込む">📥</button>
+            <input type="file" accept="application/json" id="importFileInput" style="display:none;">
+          </div>
           <input id="searchInput" class="search-bar" type="text" placeholder="料理名・材料・手順で検索" value="${escapeHtml(window.__lastQuery || '')}">
         </div>
         <div class="screen-body">
@@ -160,6 +275,22 @@
 
     const listEl = document.getElementById('recipeList');
     const searchEl = document.getElementById('searchInput');
+
+    document.getElementById('importFileBtn').addEventListener('click', () => {
+      document.getElementById('importFileInput').click();
+    });
+    document.getElementById('importFileInput').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text());
+        if (!isValidSharePayload(payload)) throw new Error('invalid');
+        filePendingImportPayload = payload;
+        navigate('#/import-preview');
+      } catch (err) {
+        window.alert('レシピファイルを読み込めませんでした。共有されたJSONファイルを選んでください。');
+      }
+    });
 
     function ingredientText(r) {
       return r.ingredients.map(ing => {
@@ -245,9 +376,13 @@
         <div class="screen-body" id="detailBody">
           <div class="detail-head">
             <h1 class="detail-title">${escapeHtml(recipe.name || '無題のレシピ')}</h1>
-            <button class="edit-fab" data-nav-edit="${recipe.id}">編集</button>
+            <div class="detail-actions">
+              <button class="edit-fab" id="shareLinkBtn" title="リンクで共有">共有</button>
+              <button class="edit-fab" data-nav-edit="${recipe.id}">編集</button>
+            </div>
           </div>
           ${recipe.image ? `<img class="hero-photo" src="${recipe.image}" alt="">` : ''}
+          ${recipe.image ? `<div class="share-file-row"><button class="pill-btn" id="shareFileBtn">📎 画像を含めてファイルで送る</button></div>` : ''}
           <div class="card">
             <h2>Ingredients</h2>
             ${ingredientsHtml}
@@ -264,6 +399,9 @@
     document.querySelector('[data-nav-edit]').addEventListener('click', () => {
       openEditRecipe(recipe.id);
     });
+    document.getElementById('shareLinkBtn').addEventListener('click', () => shareRecipeLink(recipe));
+    const shareFileBtn = document.getElementById('shareFileBtn');
+    if (shareFileBtn) shareFileBtn.addEventListener('click', () => shareRecipeFile(recipe));
 
     document.getElementById('detailBody').addEventListener('click', e => {
       const stepEl = e.target.closest('[data-step]');
@@ -312,6 +450,78 @@
       steps: recipe.steps.length ? [...recipe.steps] : [''],
     };
     navigate('#/add-recipe');
+  }
+
+  /* ============ IMPORT PREVIEW screen (from shared link or file) ============ */
+  function renderImportPreview(opts) {
+    let payload = null;
+    if (opts.source === 'url') {
+      try { payload = JSON.parse(b64urlDecode(opts.encoded)); } catch (e) { payload = null; }
+    } else {
+      payload = filePendingImportPayload;
+    }
+    if (!isValidSharePayload(payload)) {
+      app.innerHTML = `
+        <div class="screen">
+          <div class="screen-body" style="padding-top:28px;">
+            <div class="empty-msg">共有データを読み込めませんでした。${'\n'}リンクやファイルが壊れているようです。</div>
+          </div>
+          <div class="screen-footer">
+            <button class="btn btn-accent btn-block" id="backBtn">メニューに戻る</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('backBtn').addEventListener('click', () => {
+        filePendingImportPayload = null;
+        navigate('#/menu');
+      });
+      fitScreenBody();
+      return;
+    }
+
+    const ingredientsHtml = payload.ingredients.map(ing => `
+      <div class="ingredient-row">
+        <span class="ing-name">${escapeHtml(ing.name)}</span>
+        <span class="dots"></span>
+        <span class="ing-amount">${escapeHtml(ing.amount || '')}</span>
+        <span class="ing-unit">${escapeHtml(ing.unit || '')}</span>
+      </div>`).join('') || `<div class="empty-msg">材料が登録されていません</div>`;
+
+    const stepsHtml = payload.steps.map((s, i) => `
+      <div class="step-row">
+        <div class="num">${i + 1}</div>
+        <div class="step-text">${escapeHtml(s)}</div>
+      </div>`).join('') || `<div class="empty-msg">手順が登録されていません</div>`;
+
+    app.innerHTML = `
+      <div class="screen">
+        <div class="memo-note" style="background:var(--sage-soft); color:#3c4d36;">
+          <b>Shared Recipe</b>共有されたレシピです。取り込みますか？
+        </div>
+        <div class="screen-body" id="importBody">
+          <h1 class="detail-title" style="margin-top:2px;">${escapeHtml(payload.name || '無題のレシピ')}</h1>
+          ${payload.image ? `<img class="hero-photo" src="${payload.image}" alt="" style="margin-top:14px;">` : ''}
+          <div class="card"><h2>Ingredients</h2>${ingredientsHtml}</div>
+          <div class="card"><h2>Cooking</h2>${stepsHtml}</div>
+          ${payload.memo ? `<div class="card"><h2>Memo</h2><div style="white-space:pre-wrap;line-height:1.7;">${escapeHtml(payload.memo)}</div></div>` : ''}
+        </div>
+        <div class="screen-footer">
+          <button class="btn btn-ghost" id="discardBtn">破棄</button>
+          <button class="btn btn-accent" id="importBtn">レシピを追加</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('discardBtn').addEventListener('click', () => {
+      filePendingImportPayload = null;
+      navigate('#/menu');
+    });
+    document.getElementById('importBtn').addEventListener('click', () => {
+      const record = applyImportedRecipe(payload);
+      filePendingImportPayload = null;
+      navigate('#/recipe/' + record.id);
+    });
+    fitScreenBody();
   }
 
   /* ============ ADD RECIPE (main) screen ============ */
