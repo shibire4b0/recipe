@@ -149,7 +149,7 @@
           <input id="searchInput" class="search-bar" type="text" placeholder="料理名・材料・手順で検索" value="${escapeHtml(window.__lastQuery || '')}">
         </div>
         <div class="screen-body">
-          <div id="recipeList" class="bento-grid"></div>
+          <div id="recipeList" class="recipe-list"></div>
         </div>
         <div class="screen-footer">
           <button class="btn btn-ghost" data-nav="#/foods/new">食材登録</button>
@@ -188,16 +188,15 @@
         listEl.innerHTML = `<div class="empty-msg">${recipes.length === 0 ? 'まだレシピがありません。\n「レシピ作成」から追加しましょう。' : '該当するレシピが見つかりません。'}</div>`;
         return;
       }
-      listEl.innerHTML = filtered.map((r, i) => {
+      listEl.innerHTML = filtered.map(r => {
         const preview = ingredientText(r) || (r.steps[0] || '');
-        const large = i % 5 === 0;
         const thumb = r.image
-          ? `<img class="bento-bg" src="${r.image}" alt="">`
-          : `<div class="bento-bg bento-fallback">🍽</div>`;
+          ? `<img class="thumb" src="${r.image}" alt="">`
+          : `<div class="thumb-fallback">🍽</div>`;
         return `
-          <div class="bento-card ${large ? 'large' : ''}" data-open="${r.id}">
+          <div class="recipe-card ${r.image ? 'with-photo' : 'no-photo'}" data-open="${r.id}">
             ${thumb}
-            <div class="bento-overlay">
+            <div class="info">
               <div class="name">${escapeHtml(r.name || '無題のレシピ')}</div>
               <div class="preview">${escapeHtml(preview)}</div>
             </div>
@@ -330,24 +329,28 @@
           <h1 class="screen-title">レシピを作る</h1>
         </div>
         <div class="screen-body">
-          <label class="image-upload-box" id="imageBox">
-            ${draft.image ? `<img src="${draft.image}" alt="">` : '📷　料理の画像をアップロード'}
-            <input type="file" accept="image/*" id="imageInput" style="display:none;">
-          </label>
-          <div class="section-grid">
-            <div class="section-box" data-nav="#/add-recipe/foods">
-              <div class="icon">🥕</div>
-              <div class="title">食材を追加</div>
-              ${ingHtml}
+          <div class="add-recipe-fill">
+            <label class="image-upload-box" id="imageBox">
+              ${draft.image ? `<img src="${draft.image}" alt="">` : '📷　料理の画像をアップロード'}
+              <input type="file" accept="image/*" id="imageInput" style="display:none;">
+            </label>
+            <div class="section-grid">
+              <div class="section-box" data-nav="#/add-recipe/foods">
+                <div class="icon">🥕</div>
+                <div class="title">食材を追加</div>
+                ${ingHtml}
+              </div>
+              <div class="section-box" data-nav="#/add-recipe/steps">
+                <div class="icon">📝</div>
+                <div class="title">手順を追加</div>
+                ${stepHtml}
+              </div>
             </div>
-            <div class="section-box" data-nav="#/add-recipe/steps">
-              <div class="icon">📝</div>
-              <div class="title">手順を追加</div>
-              ${stepHtml}
+            <div class="memo-block">
+              <div class="field-label">メモ（任意）</div>
+              <textarea class="textarea-input" id="memoInput" placeholder="保存のコツなどメモを残せます">${escapeHtml(draft.memo)}</textarea>
             </div>
           </div>
-          <div class="field-label">メモ（任意）</div>
-          <textarea class="textarea-input" id="memoInput" placeholder="保存のコツなどメモを残せます">${escapeHtml(draft.memo)}</textarea>
         </div>
         <div class="screen-footer">
           <button class="btn btn-ghost" id="cancelBtn">取り消し</button>
