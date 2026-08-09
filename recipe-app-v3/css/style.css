@@ -317,6 +317,8 @@ button, input, textarea, select { font-family: inherit; }
   margin: 0;
   word-break: break-word;
 }
+.detail-head-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.detail-head-left .detail-title { flex: 1 1 auto; min-width: 0; }
 .detail-actions { display: flex; gap: 8px; flex: 0 0 auto; }
 .share-file-row { margin: -4px 0 16px; }
 
@@ -376,13 +378,6 @@ button, input, textarea, select { font-family: inherit; }
   white-space: pre-wrap;
 }
 .step-row .step-text.active { background: var(--highlight); }
-
-.back-hint {
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 0.76rem;
-  padding: 6px 0 4px;
-}
 
 .edit-fab {
   flex: 0 0 auto;

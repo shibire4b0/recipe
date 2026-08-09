@@ -375,7 +375,10 @@
         ${recipe.memo ? `<div class="memo-note"><b>Memo</b>${escapeHtml(recipe.memo)}</div>` : ''}
         <div class="screen-body" id="detailBody">
           <div class="detail-head">
-            <h1 class="detail-title">${escapeHtml(recipe.name || '無題のレシピ')}</h1>
+            <div class="detail-head-left">
+              <button class="fab-round" id="backToMenuBtn" title="メニューに戻る">←</button>
+              <h1 class="detail-title">${escapeHtml(recipe.name || '無題のレシピ')}</h1>
+            </div>
             <div class="detail-actions">
               <button class="edit-fab" id="shareLinkBtn" title="リンクで共有">共有</button>
               <button class="edit-fab" data-nav-edit="${recipe.id}">編集</button>
@@ -391,11 +394,11 @@
             <h2>Cooking</h2>
             ${stepsHtml}
           </div>
-          <div class="back-hint">◀ 右にスワイプでメニューに戻る</div>
         </div>
       </div>
     `;
 
+    document.getElementById('backToMenuBtn').addEventListener('click', () => navigate('#/menu'));
     document.querySelector('[data-nav-edit]').addEventListener('click', () => {
       openEditRecipe(recipe.id);
     });
