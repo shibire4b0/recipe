@@ -210,6 +210,69 @@
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
+  /* All-data backup: bundles every recipe (with photos) and every food
+     into one .json file. Used both as a personal backup before clearing
+     browser data / switching devices, and as a way to hand a whole
+     collection to someone else in one go. Always additive on import
+     (never overwrites existing recipes/foods) so it's safe to re-import. */
+  function buildFullBackupPayload() {
+    return { v: 1, type: 'backup', exportedAt: Date.now(), foods: loadFoods(), recipes: loadRecipes() };
+  }
+
+  function isValidBackupPayload(p) {
+    return !!p && typeof p === 'object' && p.type === 'backup' && Array.isArray(p.foods) && Array.isArray(p.recipes);
+  }
+
+  function applyImportedBackup(payload) {
+    const foods = loadFoods();
+    const foodIdMap = {};
+    (payload.foods || []).forEach(bf => {
+      let food = foods.find(f => f.name === bf.name);
+      if (!food) {
+        food = { id: uid(), name: bf.name, unit: bf.unit || 'その他' };
+        foods.push(food);
+      }
+      foodIdMap[bf.id] = food.id;
+    });
+    saveFoods(foods);
+
+    const recipes = loadRecipes();
+    const imported = (payload.recipes || []).map(br => ({
+      id: uid(),
+      name: br.name || '無題のレシピ',
+      image: br.image || null,
+      memo: br.memo || '',
+      ingredients: (br.ingredients || [])
+        .map(ing => ({ foodId: foodIdMap[ing.foodId], amount: ing.amount || '' }))
+        .filter(ing => ing.foodId),
+      steps: (br.steps || []).filter(s => s && s.trim()),
+      createdAt: br.createdAt || Date.now(),
+    }));
+    saveRecipes(recipes.concat(imported));
+    return imported;
+  }
+
+  async function exportAllDataFile() {
+    const payload = buildFullBackupPayload();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `recipe-note-backup-${stamp}.json`;
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const file = new File([blob], filename, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'レシピノート バックアップ' }); return; }
+      catch (e) { /* user cancelled the share sheet */ }
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
   /* ============ draft state (recipe being created/edited) ============ */
   let draft = null;
   function blankDraft() {
@@ -238,6 +301,7 @@
     if (parts[0] === 'foods' && parts[1] === 'new') return renderFoodNew();
     if (parts[0] === 'import' && parts[1]) return renderImportPreview({ source: 'url', encoded: parts[1] });
     if (parts[0] === 'import-preview') return renderImportPreview({ source: 'file' });
+    if (parts[0] === 'import-backup-preview') return renderImportBackupPreview();
     if (parts[0] === 'add-recipe') {
       if (!draft) draft = blankDraft();
       if (parts[1] === 'foods') return renderAddFoodSelect();
@@ -258,7 +322,10 @@
         <div class="screen-header">
           <div class="menu-header-row">
             <div class="eyebrow">Recipe Note</div>
-            <button class="fab-round" id="importFileBtn" title="共有されたレシピを読み込む">📥</button>
+            <div class="menu-header-actions">
+              <button class="fab-round" id="exportAllBtn" title="全レシピをバックアップ/共有">📤</button>
+              <button class="fab-round" id="importFileBtn" title="共有・バックアップファイルを読み込む">📥</button>
+            </div>
             <input type="file" accept="application/json" id="importFileInput" style="display:none;">
           </div>
           <input id="searchInput" class="search-bar" type="text" placeholder="料理名・材料・手順で検索" value="${escapeHtml(window.__lastQuery || '')}">
@@ -276,6 +343,7 @@
     const listEl = document.getElementById('recipeList');
     const searchEl = document.getElementById('searchInput');
 
+    document.getElementById('exportAllBtn').addEventListener('click', () => exportAllDataFile());
     document.getElementById('importFileBtn').addEventListener('click', () => {
       document.getElementById('importFileInput').click();
     });
@@ -284,11 +352,19 @@
       if (!file) return;
       try {
         const payload = JSON.parse(await file.text());
-        if (!isValidSharePayload(payload)) throw new Error('invalid');
-        filePendingImportPayload = payload;
-        navigate('#/import-preview');
+        if (isValidBackupPayload(payload)) {
+          filePendingImportPayload = payload;
+          navigate('#/import-backup-preview');
+        } else if (isValidSharePayload(payload)) {
+          filePendingImportPayload = payload;
+          navigate('#/import-preview');
+        } else {
+          throw new Error('invalid');
+        }
       } catch (err) {
-        window.alert('レシピファイルを読み込めませんでした。共有されたJSONファイルを選んでください。');
+        window.alert('ファイルを読み込めませんでした。共有・バックアップされたJSONファイルを選んでください。');
+      } finally {
+        e.target.value = '';
       }
     });
 
@@ -523,6 +599,73 @@
       const record = applyImportedRecipe(payload);
       filePendingImportPayload = null;
       navigate('#/recipe/' + record.id);
+    });
+    fitScreenBody();
+  }
+
+  /* ============ IMPORT BACKUP PREVIEW screen ============ */
+  function renderImportBackupPreview() {
+    const payload = filePendingImportPayload;
+    if (!isValidBackupPayload(payload)) {
+      app.innerHTML = `
+        <div class="screen">
+          <div class="screen-body">
+            <div class="empty-msg">バックアップデータを読み込めませんでした。${'\n'}ファイルが壊れているようです。</div>
+          </div>
+          <div class="screen-footer">
+            <button class="btn btn-accent btn-block" id="backBtn">メニューに戻る</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('backBtn').addEventListener('click', () => {
+        filePendingImportPayload = null;
+        navigate('#/menu');
+      });
+      fitScreenBody();
+      return;
+    }
+
+    const recipeCount = (payload.recipes || []).length;
+    const foodCount = (payload.foods || []).length;
+
+    app.innerHTML = `
+      <div class="screen">
+        <div class="memo-note" style="background:var(--sage-soft); color:#3c4d36;">
+          <b>Backup Data</b>バックアップファイルです。取り込みますか？
+        </div>
+        <div class="screen-body">
+          <div class="card">
+            <h2>読み込む内容</h2>
+            <div class="ingredient-row">
+              <span class="ing-name">レシピ</span>
+              <span class="dots"></span>
+              <span class="ing-amount">${recipeCount}</span>
+              <span class="ing-unit">件</span>
+            </div>
+            <div class="ingredient-row">
+              <span class="ing-name">食材</span>
+              <span class="dots"></span>
+              <span class="ing-amount">${foodCount}</span>
+              <span class="ing-unit">件</span>
+            </div>
+          </div>
+          <div class="empty-msg" style="text-align:left;padding:8px 4px;">現在登録済みのレシピ・食材はそのまま残り、読み込んだ内容が追加されます。同じ名前の食材は自動的に統合されます。</div>
+        </div>
+        <div class="screen-footer">
+          <button class="btn btn-ghost" id="discardBtn">破棄</button>
+          <button class="btn btn-accent" id="importBtn">読み込む</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('discardBtn').addEventListener('click', () => {
+      filePendingImportPayload = null;
+      navigate('#/menu');
+    });
+    document.getElementById('importBtn').addEventListener('click', () => {
+      applyImportedBackup(payload);
+      filePendingImportPayload = null;
+      navigate('#/menu');
     });
     fitScreenBody();
   }

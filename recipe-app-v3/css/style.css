@@ -80,6 +80,7 @@ button, input, textarea, select { font-family: inherit; }
   justify-content: space-between;
 }
 .menu-header-row .eyebrow { margin-bottom: 6px; }
+.menu-header-actions { display: flex; gap: 8px; }
 
 .screen-title {
   font-family: var(--font-display);
