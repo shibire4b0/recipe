@@ -213,6 +213,7 @@
       if (card) navigate('#/recipe/' + card.dataset.open);
     });
     bindNavButtons();
+    fitScreenBody();
   }
 
   /* ============ RECIPE DETAIL screen ============ */
@@ -283,6 +284,7 @@
     });
 
     attachSwipeBack(document.getElementById('detailBody'), () => navigate('#/menu'));
+    fitScreenBody();
   }
 
   function attachSwipeBack(el, cb) {
@@ -376,6 +378,7 @@
     });
 
     bindNavButtons();
+    fitScreenBody();
   }
 
   /* ============ ADD FOOD (select ingredients) screen ============ */
@@ -432,6 +435,7 @@
     document.getElementById('confirmBtn').addEventListener('click', () => {
       navigate('#/add-recipe/units');
     });
+    fitScreenBody();
   }
 
   /* ============ ADD UNIT (amounts) screen ============ */
@@ -489,6 +493,7 @@
       pendingFoodIds = [];
       navigate('#/add-recipe');
     });
+    fitScreenBody();
   }
 
   /* ============ ADD STEP screen ============ */
@@ -516,22 +521,26 @@
           <div class="screen-subtitle">HOW TO COOK?</div>
         </div>
         <div class="screen-body" id="stepBody"></div>
-        <div class="screen-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-gray" id="removeBtn">消す</button>
-          <button class="btn btn-gray" id="addBtn">追加</button>
-        </div>
-        <div class="screen-footer">
-          <button class="btn btn-outline" id="cancelBtn">取り消し</button>
-          <button class="btn btn-dark" id="confirmBtn">手順登録</button>
+        <div class="screen-footer-stack">
+          <div class="footer-row">
+            <button class="btn btn-gray" id="removeBtn">消す</button>
+            <button class="btn btn-gray" id="addBtn">追加</button>
+          </div>
+          <div class="footer-row">
+            <button class="btn btn-outline" id="cancelBtn">取り消し</button>
+            <button class="btn btn-dark" id="confirmBtn">手順登録</button>
+          </div>
         </div>
       </div>
     `;
     draw();
+    fitScreenBody();
 
-    document.getElementById('addBtn').addEventListener('click', () => { steps.push(''); draw(); });
+    document.getElementById('addBtn').addEventListener('click', () => { steps.push(''); draw(); fitScreenBody(); });
     document.getElementById('removeBtn').addEventListener('click', () => {
       if (steps.length > 1) steps.pop();
       draw();
+      fitScreenBody();
     });
     document.getElementById('cancelBtn').addEventListener('click', () => navigate('#/add-recipe'));
     document.getElementById('confirmBtn').addEventListener('click', () => {
@@ -576,11 +585,13 @@
             ${stepsHtml}
           </div>
         </div>
-        <div class="screen-footer">
-          <input id="nameInput" class="text-input" type="text" placeholder="料理名を入力" value="${escapeHtml(draft.name)}">
-        </div>
-        <div class="screen-footer">
-          <button class="btn btn-dark btn-block" id="registerBtn">レシピ登録</button>
+        <div class="screen-footer-stack">
+          <div class="footer-row">
+            <input id="nameInput" class="text-input" type="text" placeholder="料理名を入力" value="${escapeHtml(draft.name)}">
+          </div>
+          <div class="footer-row">
+            <button class="btn btn-dark btn-block" id="registerBtn">レシピ登録</button>
+          </div>
         </div>
       </div>
     `;
@@ -609,6 +620,7 @@
       draft = null;
       navigate('#/recipe/' + record.id);
     });
+    fitScreenBody();
   }
 
   /* ============ INGREDIENTS (register new food) screen ============ */
@@ -655,6 +667,7 @@
       saveFoods(foods);
       navigate('#/menu');
     });
+    fitScreenBody();
   }
 
   /* ============ shared nav binding ============ */
@@ -662,6 +675,25 @@
     document.querySelectorAll('[data-nav]').forEach(el => {
       el.addEventListener('click', () => navigate(el.dataset.nav));
     });
+  }
+
+  /* The topbar/header/memo-bar and footer float over .screen-body (see
+     style.css); pad it so nothing starts out hidden underneath them. */
+  function fitScreenBody() {
+    const body = document.querySelector('.screen-body');
+    if (!body) return;
+    const topH = ['.screen-topbar', '.screen-header', '.memo-bar']
+      .reduce((sum, sel) => {
+        const el = document.querySelector(sel);
+        return sum + (el ? el.offsetHeight : 0);
+      }, 0);
+    const footerEl = document.querySelector('.screen-footer-stack') || document.querySelector('.screen-footer');
+    const bottomH = footerEl ? footerEl.offsetHeight : 0;
+    body.style.paddingTop = (topH + 12) + 'px';
+    body.style.paddingBottom = (bottomH + 16) + 'px';
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(fitScreenBody);
   }
 
   render();

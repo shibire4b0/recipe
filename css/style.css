@@ -44,12 +44,18 @@ button, input, textarea, select {
 
 .hidden { display: none !important; }
 
-/* ---------- layout scaffolding ---------- */
+/* ---------- layout scaffolding ----------
+   .screen-body fills the whole screen and scrolls; the header, topbar,
+   footer and memo-bar float on top of it with transparent surroundings
+   (only the controls themselves paint a background), so list content
+   passes visibly behind them while scrolling instead of under an
+   opaque bar. Each render() call measures the floating chrome and
+   pads .screen-body so nothing sits hidden underneath at rest. */
 .screen {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .screen.grid-bg {
@@ -60,21 +66,23 @@ button, input, textarea, select {
 }
 
 .screen-topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
   background: var(--green);
   height: 14px;
-  flex: 0 0 auto;
+  z-index: 12;
 }
 
 .screen-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--cream);
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 11;
+  background: transparent;
   padding: 14px 16px 4px;
-  flex: 0 0 auto;
+  pointer-events: none;
 }
-
-.screen.grid-bg .screen-header { background: transparent; }
+.screen-header > * { pointer-events: auto; }
+.screen.grid-bg .screen-header { top: 14px; }
 
 .screen-title {
   font-family: var(--font-display);
@@ -97,22 +105,41 @@ button, input, textarea, select {
 }
 
 .screen-body {
-  flex: 1 1 auto;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
-  padding: 8px 16px 16px;
+  padding: 0 16px;
   -webkit-overflow-scrolling: touch;
 }
 
 .screen-footer {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 11;
   display: flex;
   gap: 12px;
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
-  background: var(--cream);
+  background: transparent;
+  pointer-events: none;
 }
+.screen-footer > * { pointer-events: auto; }
 
-.screen.grid-bg .screen-footer { background: transparent; }
+.screen-footer-stack {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.screen-footer-stack .footer-row {
+  display: flex;
+  gap: 12px;
+  pointer-events: none;
+}
+.screen-footer-stack .footer-row > * { pointer-events: auto; }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -268,9 +295,9 @@ button, input, textarea, select {
 
 /* ---------- recipe detail ---------- */
 .memo-bar {
-  position: sticky;
-  top: 0;
-  z-index: 6;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 11;
   background: var(--green);
   color: var(--white);
   padding: 14px 16px;
