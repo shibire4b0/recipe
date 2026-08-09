@@ -6,8 +6,8 @@
   --white: #FFFFFF;
   --orange: #F6BE93;
   --gray: #B9B9B4;
-  --radius-lg: 22px;
-  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-md: 18px;
   --shadow: 6px;
   --font-display: 'Baloo 2', 'Noto Sans JP', sans-serif;
   --font-body: 'Noto Sans JP', sans-serif;
@@ -144,10 +144,10 @@ button, input, textarea, select {
 /* ---------- buttons ---------- */
 .btn {
   border: none;
-  border-radius: var(--radius-md);
-  padding: 16px 14px;
+  border-radius: 18px;
+  padding: 20px 14px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   text-align: center;
   flex: 1;
@@ -466,11 +466,11 @@ button, input, textarea, select {
 .food-chip {
   background: var(--white);
   border: 3px solid var(--green);
-  border-radius: 14px;
-  padding: 16px 6px;
+  border-radius: 20px;
+  padding: 20px 8px;
   text-align: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--green);
 }
@@ -532,10 +532,10 @@ button, input, textarea, select {
 .unit-btn {
   background: var(--white);
   border: 3px solid var(--green);
-  border-radius: 14px;
-  padding: 16px 4px;
+  border-radius: 20px;
+  padding: 20px 4px;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   text-align: center;
   cursor: pointer;
   box-shadow: 4px 4px 0 var(--green);
@@ -549,9 +549,9 @@ button, input, textarea, select {
   background: var(--white);
   border: 3px solid var(--green);
   border-radius: 999px;
-  padding: 10px 18px;
+  padding: 12px 22px;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   box-shadow: 4px 4px 0 var(--green);
   cursor: pointer;
 }
