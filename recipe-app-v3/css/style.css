@@ -422,8 +422,8 @@ button, input, textarea, select { font-family: inherit; }
 
 .image-upload-box {
   width: 100%;
-  flex: 1 1 220px;
-  min-height: 220px;
+  flex: 1 1 0;
+  min-height: 150px;
   background: var(--surface);
   border: 2px dashed var(--line);
   border-radius: var(--radius-lg);
@@ -445,7 +445,8 @@ button, input, textarea, select { font-family: inherit; }
   grid-template-columns: 1fr 1fr;
   align-content: stretch;
   gap: 14px;
-  flex: 1 1 200px;
+  flex: 1.5 1 0;
+  min-height: 200px;
 }
 
 .section-box {
