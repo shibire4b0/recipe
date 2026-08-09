@@ -148,7 +148,6 @@
     const recipes = loadRecipes().sort((a, b) => b.createdAt - a.createdAt);
     app.innerHTML = `
       <div class="screen">
-        <div class="screen-topbar"></div>
         <div class="screen-header">
           <input id="searchInput" class="search-bar" type="text" placeholder="検索（料理名・材料・手順）" value="${escapeHtml(window.__lastQuery || '')}">
         </div>
@@ -194,20 +193,15 @@
       }
       listEl.innerHTML = filtered.map(r => {
         const preview = ingredientText(r) || (r.steps[0] || '');
-        if (r.image) {
-          return `
-            <div class="recipe-card with-photo" data-open="${r.id}">
-              <img class="thumb" src="${r.image}" alt="">
-              <div class="info">
-                <div class="name">${escapeHtml(r.name || '無題のレシピ')}</div>
-                <div class="preview">${escapeHtml(preview)}</div>
-              </div>
-            </div>`;
-        }
+        const variant = r.image ? 'with-photo' : 'no-photo';
+        const thumb = r.image ? `<img class="thumb" src="${r.image}" alt="">` : '';
         return `
-          <div class="recipe-card no-photo" data-open="${r.id}">
-            <div class="name">${escapeHtml(r.name || '無題のレシピ')}</div>
-            <div class="preview">${escapeHtml(preview)}</div>
+          <div class="recipe-card ${variant}" data-open="${r.id}">
+            <div class="card-top">
+              ${thumb}
+              <div class="name">${escapeHtml(r.name || '無題のレシピ')}</div>
+            </div>
+            <div class="card-preview">${escapeHtml(preview)}</div>
           </div>`;
       }).join('');
     }
@@ -227,11 +221,11 @@
     const recipe = recipes.find(r => r.id === id);
     if (!recipe) { navigate('#/menu'); return; }
 
-    const ingredientsHtml = recipe.ingredients.map(ing => {
+    const ingredientsHtml = recipe.ingredients.map((ing, i) => {
       const f = getFood(ing.foodId);
       if (!f) return '';
       return `
-        <div class="ingredient-row">
+        <div class="ingredient-row" data-ing="${i}">
           <span class="ing-name">${escapeHtml(f.name)}</span>
           <span class="dots"></span>
           <span class="ing-amount">${escapeHtml(ing.amount || '')}</span>
@@ -274,10 +268,18 @@
 
     document.getElementById('detailBody').addEventListener('click', e => {
       const stepEl = e.target.closest('[data-step]');
-      if (!stepEl) return;
-      const wasActive = stepEl.classList.contains('active');
-      document.querySelectorAll('.step-text.active').forEach(el => el.classList.remove('active'));
-      if (!wasActive) stepEl.classList.add('active');
+      if (stepEl) {
+        const wasActive = stepEl.classList.contains('active');
+        document.querySelectorAll('.step-text.active').forEach(el => el.classList.remove('active'));
+        if (!wasActive) stepEl.classList.add('active');
+        return;
+      }
+      const ingEl = e.target.closest('[data-ing]');
+      if (ingEl) {
+        const wasActive = ingEl.classList.contains('active');
+        document.querySelectorAll('.ingredient-row.active').forEach(el => el.classList.remove('active'));
+        if (!wasActive) ingEl.classList.add('active');
+      }
     });
 
     attachSwipeBack(document.getElementById('detailBody'), () => navigate('#/menu'));
@@ -314,17 +316,11 @@
 
   /* ============ ADD RECIPE (main) screen ============ */
   function renderAddRecipe() {
-    const ingHtml = draft.ingredients.length
-      ? `<ul>${draft.ingredients.slice(0, 5).map(i => {
-          const f = getFood(i.foodId);
-          return f ? `<li>${escapeHtml(f.name)} ${escapeHtml(i.amount || '')}${escapeHtml(f.unit)}</li>` : '';
-        }).join('')}${draft.ingredients.length > 5 ? `<li>ほか…</li>` : ''}</ul>`
-      : `<div class="placeholder">タップして食材を追加</div>`;
+    const ingCount = draft.ingredients.length;
+    const ingHtml = `<div class="count">${ingCount ? ingCount + '件登録済み' : '未登録'}</div>`;
 
     const filledSteps = draft.steps.filter(s => s.trim());
-    const stepHtml = filledSteps.length
-      ? `<ul>${filledSteps.slice(0, 4).map((s, i) => `<li>${escapeHtml(s.length > 20 ? s.slice(0, 20) + '…' : s)}</li>`).join('')}${filledSteps.length > 4 ? `<li>ほか…</li>` : ''}</ul>`
-      : `<div class="placeholder">タップして手順を追加</div>`;
+    const stepHtml = `<div class="count">${filledSteps.length ? filledSteps.length + '件登録済み' : '未登録'}</div>`;
 
     app.innerHTML = `
       <div class="screen grid-bg">
