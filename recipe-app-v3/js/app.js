@@ -24,6 +24,7 @@
     catch (e) { return []; }
   }
   function saveRecipes(recipes) { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipes)); }
+  function deleteRecipe(id) { saveRecipes(loadRecipes().filter(r => r.id !== id)); }
 
   function seedIfEmpty() {
     if (loadFoods().length === 0) {
@@ -478,6 +479,17 @@
             <button class="btn btn-accent" data-nav-edit="${recipe.id}">編集</button>
           </div>
           ${recipe.image ? `<button class="btn btn-muted btn-block" id="shareFileBtn">📎 画像を含めてファイルで送る</button>` : ''}
+          <button class="delete-link" id="deleteRecipeBtn">レシピを削除</button>
+        </div>
+        <div class="modal-overlay" id="deleteModal">
+          <div class="modal-card">
+            <div class="modal-title">レシピを削除しますか？</div>
+            <div class="modal-text">「${escapeHtml(recipe.name || '無題のレシピ')}」を削除すると元に戻せません。</div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" id="deleteCancelBtn">キャンセル</button>
+              <button class="btn btn-danger" id="deleteConfirmBtn">削除する</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -489,6 +501,17 @@
     document.getElementById('shareLinkBtn').addEventListener('click', () => shareRecipeLink(recipe));
     const shareFileBtn = document.getElementById('shareFileBtn');
     if (shareFileBtn) shareFileBtn.addEventListener('click', () => shareRecipeFile(recipe));
+
+    const deleteModal = document.getElementById('deleteModal');
+    document.getElementById('deleteRecipeBtn').addEventListener('click', () => deleteModal.classList.add('open'));
+    document.getElementById('deleteCancelBtn').addEventListener('click', () => deleteModal.classList.remove('open'));
+    deleteModal.addEventListener('click', e => {
+      if (e.target === deleteModal) deleteModal.classList.remove('open');
+    });
+    document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
+      deleteRecipe(recipe.id);
+      navigate('#/menu');
+    });
 
     document.getElementById('detailBody').addEventListener('click', e => {
       const stepEl = e.target.closest('[data-step]');
