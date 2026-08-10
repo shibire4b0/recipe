@@ -323,8 +323,8 @@
           <div class="menu-header-row">
             <div class="eyebrow">Recipe Note</div>
             <div class="menu-header-actions">
-              <button class="fab-round" id="exportAllBtn" title="全レシピをバックアップ/共有">📤</button>
-              <button class="fab-round" id="importFileBtn" title="共有・バックアップファイルを読み込む">📥</button>
+              <button class="menu-io-btn" id="exportAllBtn" title="全レシピをバックアップ/共有">📤</button>
+              <button class="menu-io-btn" id="importFileBtn" title="共有・バックアップファイルを読み込む">📥</button>
             </div>
             <input type="file" accept="application/json" id="importFileInput" style="display:none;">
           </div>
@@ -451,17 +451,10 @@
         ${recipe.memo ? `<div class="memo-note"><b>Memo</b>${escapeHtml(recipe.memo)}</div>` : ''}
         <div class="screen-body" id="detailBody">
           <div class="detail-head">
-            <div class="detail-head-left">
-              <button class="fab-round" id="backToMenuBtn" title="メニューに戻る">←</button>
-              <h1 class="detail-title">${escapeHtml(recipe.name || '無題のレシピ')}</h1>
-            </div>
-            <div class="detail-actions">
-              <button class="edit-fab" id="shareLinkBtn" title="リンクで共有">共有</button>
-              <button class="edit-fab" data-nav-edit="${recipe.id}">編集</button>
-            </div>
+            <button class="fab-round" id="backToMenuBtn" title="メニューに戻る">←</button>
+            <h1 class="detail-title">${escapeHtml(recipe.name || '無題のレシピ')}</h1>
           </div>
           ${recipe.image ? `<img class="hero-photo" src="${recipe.image}" alt="">` : ''}
-          ${recipe.image ? `<div class="share-file-row"><button class="pill-btn" id="shareFileBtn">📎 画像を含めてファイルで送る</button></div>` : ''}
           <div class="card">
             <h2>Ingredients</h2>
             ${ingredientsHtml}
@@ -470,6 +463,13 @@
             <h2>Cooking</h2>
             ${stepsHtml}
           </div>
+        </div>
+        <div class="screen-footer-stack">
+          <div class="footer-row">
+            <button class="btn btn-ghost" id="shareLinkBtn" title="リンクで共有">共有</button>
+            <button class="btn btn-accent" data-nav-edit="${recipe.id}">編集</button>
+          </div>
+          ${recipe.image ? `<div class="footer-row"><button class="btn btn-muted btn-block" id="shareFileBtn">📎 画像を含めてファイルで送る</button></div>` : ''}
         </div>
       </div>
     `;

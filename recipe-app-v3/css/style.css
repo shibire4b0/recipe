@@ -168,15 +168,16 @@ button, input, textarea, select { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
 }
 
-.pill-btn {
-  background: var(--surface);
-  border: 1.5px solid var(--line);
+.menu-io-btn {
+  flex: 0 0 auto;
+  width: 51px; height: 30px;
   border-radius: 999px;
-  padding: 11px 20px;
-  font-weight: 700;
-  font-size: 0.86rem;
+  border: none;
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
+  font-size: 0.9rem;
   cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
 
 /* ---------- search ---------- */
@@ -305,11 +306,11 @@ button, input, textarea, select { font-family: inherit; }
 
 .detail-head {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 14px;
 }
+.detail-head .detail-title { flex: 1 1 auto; min-width: 0; }
 .detail-title {
   font-family: var(--font-display);
   font-weight: 700;
@@ -318,10 +319,6 @@ button, input, textarea, select { font-family: inherit; }
   margin: 0;
   word-break: break-word;
 }
-.detail-head-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
-.detail-head-left .detail-title { flex: 1 1 auto; min-width: 0; }
-.detail-actions { display: flex; gap: 8px; flex: 0 0 auto; }
-.share-file-row { margin: -4px 0 16px; }
 
 .ingredient-row {
   display: flex;
@@ -379,18 +376,6 @@ button, input, textarea, select { font-family: inherit; }
   white-space: pre-wrap;
 }
 .step-row .step-text.active { background: var(--highlight); }
-
-.edit-fab {
-  flex: 0 0 auto;
-  background: var(--surface);
-  border: none;
-  border-radius: 999px;
-  padding: 11px 20px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
 
 /* ---------- forms ---------- */
 .field-label {
