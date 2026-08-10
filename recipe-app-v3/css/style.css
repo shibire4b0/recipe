@@ -78,8 +78,9 @@ button, input, textarea, select { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
 }
-.menu-header-row .eyebrow { margin-bottom: 6px; }
+.menu-header-row .eyebrow { margin-bottom: 0; }
 .menu-header-actions { display: flex; gap: 8px; }
 
 .screen-title {
