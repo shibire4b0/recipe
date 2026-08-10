@@ -196,9 +196,14 @@
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
     const file = new File([blob], filename || 'recipe.json', { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: recipe.name || 'レシピ' }); return; }
-      catch (e) { /* user cancelled the share sheet */ }
-      return;
+      try {
+        await navigator.share({ files: [file], title: recipe.name || 'レシピ' });
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // user cancelled the share sheet
+        // any other failure (unsupported target, share sheet error, etc.) falls
+        // through to the plain download below instead of silently doing nothing
+      }
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -259,9 +264,14 @@
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
     const file = new File([blob], filename, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'レシピノート バックアップ' }); return; }
-      catch (e) { /* user cancelled the share sheet */ }
-      return;
+      try {
+        await navigator.share({ files: [file], title: 'レシピノート バックアップ' });
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // user cancelled the share sheet
+        // any other failure (unsupported target, share sheet error, etc.) falls
+        // through to the plain download below instead of silently doing nothing
+      }
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
