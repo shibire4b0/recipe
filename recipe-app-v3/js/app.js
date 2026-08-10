@@ -463,13 +463,11 @@
             <h2>Cooking</h2>
             ${stepsHtml}
           </div>
-        </div>
-        <div class="screen-footer-stack">
-          <div class="footer-row">
+          <div class="detail-share-block">
             <button class="btn btn-ghost" id="shareLinkBtn" title="リンクで共有">共有</button>
             <button class="btn btn-accent" data-nav-edit="${recipe.id}">編集</button>
           </div>
-          ${recipe.image ? `<div class="footer-row"><button class="btn btn-muted btn-block" id="shareFileBtn">📎 画像を含めてファイルで送る</button></div>` : ''}
+          ${recipe.image ? `<button class="btn btn-muted btn-block" id="shareFileBtn">📎 画像を含めてファイルで送る</button>` : ''}
         </div>
       </div>
     `;

@@ -378,6 +378,8 @@ button, input, textarea, select { font-family: inherit; }
 }
 .step-row .step-text.active { background: var(--highlight); }
 
+.detail-share-block { display: flex; gap: 10px; margin-bottom: 12px; }
+
 /* ---------- forms ---------- */
 .field-label {
   font-family: var(--font-display);
